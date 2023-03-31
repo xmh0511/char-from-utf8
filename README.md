@@ -1,7 +1,7 @@
-A library that converts utf-8 bytes to a char
+A library that converts utf-8 bytes to a unicode scalar value, and vice versa
 
 ````rust
-use char_from_utf8::{FromUtf8};
+use char_from_utf8::{FromUtf8,ToUtf8};
 fn main(){
 	let r:char = char::from_utf8(&[0xE6,0x88,0x91]).unwrap();
 	println!("{r}");
