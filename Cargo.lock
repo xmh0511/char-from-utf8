@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "char-from-utf8"
-version = "0.1.0"
+name = "unicode-utf8"
+version = "0.1.1"

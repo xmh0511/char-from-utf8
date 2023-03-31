@@ -48,15 +48,102 @@ impl FromUtf8 for char{
     }
 }
 
+pub trait ToUtf8 {
+	fn to_utf8(&self)->Option<Vec<u8>>;
+}
+impl ToUtf8 for u32{
+    fn to_utf8(&self)->Option<Vec<u8>>{
+		let code = *self;
+		match code {
+			0..=0x7f => Some([code as u8].into()),
+			0x80..=0x7FF => {
+				// 2 byes
+				let unit_low = ((0b00111111 & code) | 0b10000000) as u8;
+				let code = code >> 6;
+				let unit_high = ((0b00111111 & code) | 0b11000000) as u8;
+				Some([unit_high, unit_low].into())
+			}
+			0x800..=0xFFFF => {
+				// 3 bytes
+				let mut result = Vec::new();
+				let mut code = code;
+				for _ in 0..2 {
+					let unit_low = ((0b00111111 & code) | 0b10000000) as u8;
+					result.push(unit_low);
+					code = code >> 6;
+				}
+				let unit_high = ((0b00111111 & code) | 0b11100000) as u8;
+				result.push(unit_high);
+				result.reverse();
+				Some(result)
+			}
+			0x10000..=0x1FFFFF => {
+				// 4 bytes
+				let mut result = Vec::new();
+				let mut code = code;
+				for _ in 0..3 {
+					let unit_low = ((0b00111111 & code) | 0b10000000) as u8;
+					result.push(unit_low);
+					code = code >> 6;
+				}
+				let unit_high = ((0b00111111 & code) | 0b11110000) as u8;
+				result.push(unit_high);
+				result.reverse();
+				Some(result)
+			}
+			0x200000..=0x3FFFFFF => {
+				// 5 bytes
+				let mut result = Vec::new();
+				let mut code = code;
+				for _ in 0..4 {
+					let unit_low = ((0b00111111 & code) | 0b10000000) as u8;
+					result.push(unit_low);
+					code = code >> 6;
+				}
+				let unit_high = ((0b00111111 & code) | 0b11111000) as u8;
+				result.push(unit_high);
+				result.reverse();
+				Some(result)
+			}
+			0x4000000..=0x7FFFFFFF => {
+				// 6 bytes
+				let mut result = Vec::new();
+				let mut code = code;
+				for _ in 0..5 {
+					let unit_low = ((0b00111111 & code) | 0b10000000) as u8;
+					result.push(unit_low);
+					code = code >> 6;
+				}
+				let unit_high = ((0b00111111 & code) | 0b11111100) as u8;
+				result.push(unit_high);
+				result.reverse();
+				Some(result)
+			}
+			_ => {
+				//panic!("cannot be represented in unicode scalar values");
+				None
+			}
+		}
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn it_works() {
+    fn char_from_utf8() {
 		assert_eq!(char::from_utf8(&[0x61]), Some('a'));
 		assert_eq!(char::from_utf8(&[0xC3,0x80]), Some('À'));
         assert_eq!(char::from_utf8(&[0xE6,0x88,0x91]), Some('我'));
 		assert_eq!(char::from_utf8(&[0xF0,0x93,0x83,0xB0]), Some('𓃰'));
     }
+
+	#[test]
+	fn utf8_to_unicode(){
+		assert_eq!(0x61u32.to_utf8(),Some(vec![0x61]));
+		assert_eq!(0xC0u32.to_utf8(),Some(vec![0xC3,0x80]));
+		assert_eq!(0x6211u32.to_utf8(),Some(vec![0xE6,0x88,0x91]));
+		assert_eq!(0x130F0u32.to_utf8(),Some(vec![0xF0,0x93,0x83,0xB0]));
+	}
 }
